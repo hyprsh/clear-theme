@@ -1,8 +1,8 @@
 # Clear Theme
 
 The macOS Terminal **Clear Dark** and **Clear Light** profiles for VS Code,
-Ghostty, herdr, tuicr and Neovim, so your editor and terminal look just like
-Terminal.app.
+Ghostty, herdr, tuicr, Neovim and Claude Code, so your editor and terminal look
+just like Terminal.app.
 
 ![Clear Dark in front of Clear Light in VS Code](images/clear.png)
 
@@ -227,6 +227,46 @@ preset:
 }
 ```
 
+## Claude Code
+
+<!-- Screenshot placeholder: images/claude-code.png, Clear Dark in front of
+Clear Light in Claude Code. -->
+
+`claude-code/` has Clear Light and Clear Dark, and Apple System Colors and
+Apple System Colors Light, as [custom
+themes](https://code.claude.com/docs/en/terminal-config#create-a-custom-theme)
+for [Claude Code](https://code.claude.com)'s interface. Each one starts from
+Claude Code's own dark or light preset and replaces every color: the VS Code
+theme's grays and hues for text, borders, modes and subagents, its
+changed-line and changed-word fills (made opaque) for diffs, and faint grays
+for your messages. Claude's orange becomes the palette's red, which is close
+to it. They need Claude Code 2.1.246 or later; older versions ignore the diff
+colors.
+
+Copy the files into Claude Code's themes folder:
+
+```sh
+mkdir -p ~/.claude/themes
+cp claude-code/*.json ~/.claude/themes/
+```
+
+Then run `/theme` in Claude Code and pick **Clear Dark** or **Clear Light**
+(listed as `custom`). That saves `"theme": "custom:clear-dark"` (or
+`custom:clear-light`) in Claude Code's config. If `~/.claude/themes` didn't
+exist before, restart Claude Code once so it finds the folder; after that it
+picks up changes while running.
+
+Unlike the presets' **Auto (match terminal)**, a custom theme doesn't follow
+the macOS appearance, so switch with `/theme` when you switch appearance.
+Claude Code's syntax colors in diffs and code blocks aren't part of a theme;
+they come from the preset (Monokai Extended in dark mode).
+
+To have Claude Code follow the appearance, pick **Auto (match terminal)**
+instead; you get Claude Code's own colors rather than Clear's. The **ANSI
+colors only** presets are a middle way: they draw with the terminal's 16
+colors, so with the Ghostty theme above they take Clear's hues, but their
+grays and diff fills are coarser and they don't switch either.
+
 ## Font (optional)
 
 To match macOS Terminal's font too, use **SF Mono Terminal**, the SF Mono
@@ -272,8 +312,8 @@ major update if you want Terminal's latest version.
 
 ## Development
 
-The VS Code, Ghostty, herdr, tuicr and Neovim themes are generated from
-`palettes.py`; edit it or `build.py`, then:
+The VS Code, Ghostty, herdr, tuicr, Neovim and Claude Code themes are
+generated from `palettes.py`; edit it or `build.py`, then:
 
 ```sh
 python3 build.py
