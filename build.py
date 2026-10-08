@@ -1,5 +1,5 @@
-"""Generate the VS Code, Ghostty, herdr, tuicr and Neovim themes from the
-palettes in palettes.py.
+"""Generate the VS Code, Ghostty, herdr, tuicr, Neovim and Claude Code themes
+from the palettes in palettes.py.
 
 Run: python3 build.py
 """
@@ -953,6 +953,116 @@ return themes[vim.o.background == "light" and "light" or "dark"]
 """
 
 
+def claude_code(vs, p, grays, dark):
+    """A Claude Code custom theme (~/.claude/themes/<slug>.json) with the VS
+    Code theme vs's grays and hues. It starts from the built-in dark or light
+    preset and overrides every color token, so nothing of the preset shows.
+    Claude Code draws on the terminal's background and takes no alpha, so
+    fills are flattened onto it."""
+    c = vs["colors"]
+    bg, fg = p["background"], p["foreground"]
+    gray, gray2, gray3, gray4, gray5, gray6 = grays
+    red, green, yellow, blue, magenta, cyan = hues(p, dark)
+    muted = c["descriptionForeground"]
+    # Claude's orange is close to the palette's red (bright red in dark
+    # mode); orange and pink, which Claude Code has and the palette hasn't,
+    # sit half-way between its neighbors.
+    orange = readable(mix(red, yellow, 0.5), bg)
+    pink = readable(mix(red, magenta, 0.5), bg)
+
+    def shimmer(color):
+        """The lighter color a spinner's gradient sweeps to, as in the
+        presets."""
+        return mix(color, "#ffffff", 0.3)
+
+    # Changed lines and changed words: the editor's fills, flattened.
+    # Dimmed diffs (a rejected edit) fade them toward the selection gray.
+    code = [fg, vs["semanticTokenColors"]["comment"], red, green, yellow, blue, magenta, cyan]
+    selected = selection_gray(p, dark)
+
+    def diff(hue):
+        line, text = diff_fills(hue, bg, code)
+        line = over(line, bg)
+        return line, over(text, line), mix(line, selected, 0.5)
+
+    added, added_word, added_dimmed = diff(green)
+    removed, removed_word, removed_dimmed = diff(red)
+
+    colors = {
+        # Text and accents
+        "claude": red,
+        "text": fg,
+        "inverseText": bg,
+        "inactive": muted,
+        "subtle": gray2,
+        "suggestion": blue,
+        "permission": blue,
+        "remember": blue,
+        "skill": magenta,
+        "background": cyan,
+        "professionalBlue": blue,
+        "chromeYellow": yellow,
+        "clawd_body": red,
+        "claudeBlue_FOR_SYSTEM_SPINNER": blue,
+        # Status
+        "success": green,
+        "error": red,
+        "warning": yellow,
+        "merged": magenta,
+        # Input box and modes
+        "promptBorder": gray2,
+        "planMode": cyan,
+        "autoAccept": magenta,
+        "bashBorder": magenta,
+        "ide": blue,
+        "fastMode": orange,
+        "effortUltra": magenta,
+        # Diffs
+        "diffAdded": added,
+        "diffRemoved": removed,
+        "diffAddedDimmed": added_dimmed,
+        "diffRemovedDimmed": removed_dimmed,
+        "diffAddedWord": added_word,
+        "diffRemovedWord": removed_word,
+        # Message backgrounds, faintly tinted like the presets'
+        "userMessageBackground": gray5,
+        "userMessageBackgroundHover": gray4,
+        "composerSidebarBackground": gray6,
+        "bashMessageBackgroundColor": mix(gray5, magenta, 0.06),
+        "memoryBackgroundColor": mix(gray5, blue, 0.06),
+        "selectionBg": p["selection_bg"],
+        # Usage meter and speaker labels
+        "rate_limit_fill": blue,
+        "rate_limit_empty": gray4,
+        "briefLabelYou": blue,
+        "briefLabelClaude": red,
+        # Subagents
+        "red_FOR_SUBAGENTS_ONLY": red,
+        "blue_FOR_SUBAGENTS_ONLY": blue,
+        "green_FOR_SUBAGENTS_ONLY": green,
+        "yellow_FOR_SUBAGENTS_ONLY": yellow,
+        "purple_FOR_SUBAGENTS_ONLY": magenta,
+        "orange_FOR_SUBAGENTS_ONLY": orange,
+        "pink_FOR_SUBAGENTS_ONLY": pink,
+        "cyan_FOR_SUBAGENTS_ONLY": cyan,
+        # The ultrathink rainbow
+        "rainbow_red": red,
+        "rainbow_orange": orange,
+        "rainbow_yellow": yellow,
+        "rainbow_green": green,
+        "rainbow_blue": cyan,
+        "rainbow_indigo": blue,
+        "rainbow_violet": magenta,
+    }
+    for token in ("claude", "permission", "promptBorder", "inactive", "warning", "fastMode"):
+        colors[f"{token}Shimmer"] = shimmer(colors[token])
+    colors["claudeBlueShimmer_FOR_SYSTEM_SPINNER"] = shimmer(blue)
+    colors["autoAcceptShimmer"] = shimmer(magenta)
+    for hue in ("red", "orange", "yellow", "green", "blue", "indigo", "violet"):
+        colors[f"rainbow_{hue}_shimmer"] = shimmer(colors[f"rainbow_{hue}"])
+    return {"name": vs["name"], "base": "dark" if dark else "light", "overrides": colors}
+
+
 def main():
     out = Path(__file__).parent / "themes"
     out.mkdir(exist_ok=True)
@@ -1010,6 +1120,18 @@ def main():
         lualine(vscode["Clear Dark"], CLEAR_DARK, True),
     ))
     print("wrote lua/lualine/themes/clear.lua")
+
+    cc = Path(__file__).parent / "claude-code"
+    cc.mkdir(exist_ok=True)
+    for name, pal, grays, dark, fname in [
+        ("Apple System Colors", DARK, DARK_GRAYS, True, "apple-system-colors-dark.json"),
+        ("Apple System Colors Light", LIGHT, LIGHT_GRAYS, False, "apple-system-colors-light.json"),
+        ("Clear Dark", CLEAR_DARK, CLEAR_DARK_GRAYS, True, "clear-dark.json"),
+        ("Clear Light", CLEAR_LIGHT, CLEAR_LIGHT_GRAYS, False, "clear-light.json"),
+    ]:
+        theme = claude_code(vscode[name], pal, grays, dark)
+        (cc / fname).write_text(json.dumps(theme, indent=2) + "\n")
+        print(f"wrote claude-code/{fname}")
 
 
 if __name__ == "__main__":
